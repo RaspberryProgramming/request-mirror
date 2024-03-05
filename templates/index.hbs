@@ -78,12 +78,12 @@
 
         function loadFields() {
             let fieldstr = localStorage.getItem('mirror-save');
-
             if (fieldstr) {
 
+                resetForm(false);
+
                 fieldInfo = JSON.parse(fieldstr);
-            
-                resetForm();
+
 
                 for (let field in fieldInfo) {
                     console.log(field);
@@ -93,8 +93,11 @@
 
         }
 
-        function resetForm() {
-            localStorage.removeItem('mirror-save');
+        function resetForm(resetStorage=true) {
+            
+            if (resetStorage) {
+                localStorage.removeItem('mirror-save');
+            }
             
             fieldInfo = {};
 
