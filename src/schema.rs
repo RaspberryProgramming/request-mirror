@@ -2,15 +2,15 @@
 
 diesel::table! {
     clients (id) {
-        id -> Int4,
+        id -> Int8,
         ip -> Text,
-        mirror_id -> Text,
+        client_id -> Text,
     }
 }
 
 diesel::table! {
     history (id) {
-        id -> Int4,
+        id -> Int8,
         client_id -> Text,
         request_type -> Text,
         timestamp -> Timestamp,
@@ -19,7 +19,7 @@ diesel::table! {
 
 diesel::table! {
     ownership (id) {
-        id -> Int4,
+        id -> Int8,
         owner_id -> Text,
         client_id -> Text,
     }
@@ -27,9 +27,9 @@ diesel::table! {
 
 diesel::table! {
     pair_records (id) {
-        id -> Int4,
-        history_id -> Int4,
-        pair_type -> Int4,
+        id -> Int8,
+        history_id -> Int8,
+        pair_type -> Int2,
         key -> Text,
         value -> Text,
     }
