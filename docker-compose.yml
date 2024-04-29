@@ -1,17 +1,6 @@
-version: 3.8
+version: "3.8"
 
 services:
-  request-mirror:
-    image: request-mirror
-    ports:
-      - 80:80
-    environment:
-      - DB_HOST=postgres
-    depends_on:
-      - postgres
-    networks:
-      - app-network
-  
   postgres:
     image: postgres
     environment:
@@ -20,6 +9,22 @@ services:
       - POSTGRES_DB=request_mirror_db
     volumes:
       - db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d request_mirror_db | grep 'accepting connections'"]
+  request-mirror:
+    #image: request-mirror
+    build: &request_mirror_build
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 80:8000
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres/request_mirror_db
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
 

@@ -4,16 +4,24 @@ This application provides a web ui for sending get/post requests and provides a 
 ## TODO:
  - Update Readme
  - Document
- - Setup Docker
 
 ## Docker
 
-This is the current setup for getting the webapp to work with docker. This may not work on your machine, this is beta.
+Please read through the documentation on setting up and installing docker on your machine.
+We'll use the CLI commands to deploy the application to docker.
+
+See [Get Docker](https://docs.docker.com/get-docker/)
+
+First you'll want to ensure you have build the container. Do that by running
 
 ```bash
-cd request-mirror
-
-sh deploy.sh
+docker build . -t raspberrypi99/request-mirror
 ```
 
-This will setup the container. A better setup will come in the future.
+Next you can start up the application using docker compose
+
+```bash
+docker compose up -d
+```
+
+This will deploy the application to docker. It will setup the postgres server, deploy the database using diesel and start request-mirror.
