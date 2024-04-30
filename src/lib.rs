@@ -16,7 +16,7 @@ use schema::{
 /// 
 /// Example:
 /// 
-/// ```rust
+/// ```rust,ignore
 /// use request_mirror::establish_connection;
 /// 
 /// let connection = establish_connection();
