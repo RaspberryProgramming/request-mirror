@@ -15,7 +15,10 @@ use schema::{
 /// Establishes diesel Postgres connection that can be used to iteract with the database
 /// 
 /// Example:
-/// ```
+/// 
+/// ```rust
+/// use request_mirror::establish_connection;
+/// 
 /// let connection = establish_connection();
 /// ```
 pub fn establish_connection() -> PgConnection {
@@ -30,10 +33,13 @@ pub fn establish_connection() -> PgConnection {
 /// Used to create a new client in the database. You need to pass a connection, the ip and client_id
 /// 
 /// Example:
-/// ```
-/// let connection = establish_connection();
 /// 
-/// create_client(connection, "192.168.0.1", "195222-222-123123");
+/// ```rust,ignore
+/// use request_mirror::{establish_connection, create_client};
+/// 
+/// let mut connection = establish_connection();
+/// 
+/// create_client(&mut connection, "192.168.0.1", "195222-222-123123");
 /// ```
 /// 
 /// create_client returns a value of usize which represents the number of entries created

@@ -29,3 +29,5 @@ CREATE TABLE IF NOT EXISTS pair_records
     key TEXT NOT NULL,
     value TEXT NOT NULL
 );
+
+CREATE INDEX pair_records_history_id_idx ON pair_records(history_id);
