@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres
@@ -14,10 +12,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d request_mirror_db | grep 'accepting connections'"]
   request-mirror:
-    #image: request-mirror
-    build: &request_mirror_build
-      context: .
-      dockerfile: ./Dockerfile
+    image: raspberrypi99/request-mirror:latest
     ports:
       - 80:8000
     environment:
