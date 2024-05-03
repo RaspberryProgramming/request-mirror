@@ -15,9 +15,14 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Update to Nightly
-      run: rustup update nightly && rustup default nightly
+    - name: Checkout sources
+      uses: actions/checkout@v4
+    - name: Install stable toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
     - name: Build
       run: cargo build --verbose
     - name: Run tests
