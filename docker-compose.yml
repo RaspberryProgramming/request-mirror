@@ -1,11 +1,9 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD=Password123
       - POSTGRES_DB=request_mirror_db
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -14,14 +12,11 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d request_mirror_db | grep 'accepting connections'"]
   request-mirror:
-    #image: request-mirror
-    build: &request_mirror_build
-      context: .
-      dockerfile: ./Dockerfile
+    image: raspberrypi99/request-mirror:latest
     ports:
       - 80:8000
     environment:
-      - DATABASE_URL=postgres://postgres:password@postgres/request_mirror_db
+      - DATABASE_URL=postgres://postgres:Password123@postgres/request_mirror_db
     depends_on:
       postgres:
         condition: service_healthy
