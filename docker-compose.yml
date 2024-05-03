@@ -5,7 +5,7 @@ services:
     image: postgres
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD=Password123
       - POSTGRES_DB=request_mirror_db
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -21,7 +21,7 @@ services:
     ports:
       - 80:8000
     environment:
-      - DATABASE_URL=postgres://postgres:password@postgres/request_mirror_db
+      - DATABASE_URL=postgres://postgres:Password123@postgres/request_mirror_db
     depends_on:
       postgres:
         condition: service_healthy

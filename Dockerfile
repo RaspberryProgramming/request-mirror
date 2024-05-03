@@ -13,4 +13,4 @@ COPY .env.docker /.env
 ENV ROCKET_ADDRESS=0.0.0.0
 ENV ROCKET_ENV=production
 EXPOSE 8000
-ENTRYPOINT diesel migration run --migration-dir /migrations && request-mirror
+ENTRYPOINT diesel migration run --database-url $DATABASE_URL --migration-dir /migrations && request-mirror
