@@ -11,6 +11,7 @@ COPY --from=builder /usr/local/cargo/bin/request-mirror /usr/local/bin/request-m
 COPY ./templates /templates
 COPY .env.docker /.env
 ENV ROCKET_ADDRESS=0.0.0.0
+ENV ROCKET_PORT=80
 ENV ROCKET_ENV=production
-EXPOSE 8000
+EXPOSE 80
 ENTRYPOINT diesel migration run --database-url $DATABASE_URL --migration-dir /migrations && request-mirror

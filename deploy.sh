@@ -18,4 +18,4 @@ diesel migration run
 
 # Build and start request-mirror
 docker build . -t raspberrypi99/request-mirror
-docker run -d --rm -p 8000:8000 --name request-mirror --net postgres-net raspberrypi99/request-mirror
+docker run -d --rm -p 80:8000 --name request-mirror --net postgres-net raspberrypi99/request-mirror
