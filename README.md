@@ -25,3 +25,27 @@ docker compose up -d
 ```
 
 This will deploy the application to docker. It will setup the postgres server, deploy the database using diesel and start request-mirror.
+
+The following command will stop the deployed containers
+
+```bash
+docker compose down
+```
+
+### Pushing to dockerhub
+
+The image can then be pushed to docker using the following command. You may also want to modify it a little to your need
+
+First login
+```bash
+docker login
+```
+
+Then push the image
+```bash
+docker push raspberrypi99/request-mirror:latest
+```
+
+## Deploying to azure
+
+TODO
