@@ -14,16 +14,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Docker Publish
-      # You may pin to the exact commit or the version.
-      # uses: manusa/actions-publish-docker@db938e45d2a3487e0eab9646e83550f554c17af3
+    - run: docker build . -t raspberrypi99/request-mirror
+    - name: Dockerize
+      if: success()
       uses: manusa/actions-publish-docker@v1.1.2
       with:
-        # Name of the Docker image
-        name: request-mirror
-        # Tag for the Docker image
-        tag: latest
-        # Username for Docker registry
+        name: raspberrypi99/request-mirror
         username: ${{ secrets.docker_hub_username }}
-        # Password for Docker registry
         password: ${{ secrets.docker_hub_password }}
