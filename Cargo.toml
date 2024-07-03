@@ -1,6 +1,6 @@
 [package]
 name = "request-mirror"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,14 +9,14 @@ edition = "2021"
 chrono = "0.4.34"
 diesel = { version = "2.1.4", features = ["postgres", "chrono"] }
 dotenvy = "0.15.7"
-rocket = { version = "0.4.11", features = ["tls"] }
+rocket = { version = "0.5.1", features = ["tls"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["full"] }
 
-[dependencies.rocket_contrib]
-version = "0.4.11"
-features = ["handlebars_templates", "tera_templates"]
+[dependencies.rocket_dyn_templates]
+version = "0.2.0"
+features = ["handlebars"]
 
 [dependencies.uuid]
 version = "1.7.0"
