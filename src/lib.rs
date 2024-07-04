@@ -27,7 +27,7 @@ pub fn establish_connection() -> PgConnection {
     let database_url: String;
     match env::var(key) {
         Ok(val) => database_url = val,
-        Err(e) => {
+        Err(_e) => {
             dotenv().ok();
 
             database_url = env::var(key).expect("DATABASE_URL must be set");

@@ -1,17 +1,15 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 #[macro_use]
 extern crate rocket;
 
 use request_mirror::schema::{history, pair_records};
-use rocket::{data, request, Outcome, Request, Data};
-use rocket::data::FromDataSimple;
-use rocket::request::FromRequest;
-use rocket_contrib::templates::Template;
+use rocket::data::{FromData, ToByteUnit};
+use rocket::{data, Data};
+use rocket::request::{self, Request, FromRequest};
+use rocket::outcome::Outcome;
+use rocket_dyn_templates::Template;
 use serde::Serialize;
-use rocket::http::{Cookie, Cookies, Status};
+use rocket::http::{Cookie, CookieJar, Status};
 use uuid::Uuid;
-use std::io::Read;
 use request_mirror::models::*;
 use diesel::prelude::*;
 use request_mirror::*;
@@ -24,7 +22,9 @@ struct RequestInfo {
 }
 
 #[derive(Debug)]
-enum ApiError {
+enum Error {
+    TooLarge,
+    Io(std::io::Error),
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -33,13 +33,14 @@ struct RequestBody(String);
 // Always use a limit to prevent DoS attacks.
 const LIMIT: u64 = 256;
 
-impl<'a, 'r> FromRequest<'a, 'r> for RequestInfo {
-    type Error = ApiError;
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for RequestInfo {
+    type Error = Error;
 
     /// Used for parsing request information and making it available for request functions to access
     /// Also handles creating cookies when the client doesn't send one in the request
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let mut req_cookies = request.cookies();
+    async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
+        let req_cookies: &CookieJar = req.cookies();
 
         // Initially set cookie
         if req_cookies.get(&"mirror-id").is_none() {
@@ -47,13 +48,12 @@ impl<'a, 'r> FromRequest<'a, 'r> for RequestInfo {
             // When the client doesn't send the mirror-id cookie, from_request will create
             // one in the database and send it back to the client.
             let new_uuid = Uuid::new_v4().to_string();
-
             println!("Creating new cookie");
             
             req_cookies.add(Cookie::new("mirror-id", new_uuid.clone()));
             
-            let address = if request.client_ip().is_some() {
-                request.client_ip().unwrap().to_string()
+            let address = if req.client_ip().is_some() {
+                req.client_ip().unwrap().to_string()
             } else {
                 "Unknown".to_string()
             };
@@ -71,7 +71,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for RequestInfo {
         let mut query: Vec<Pair> = vec![];
 
         // Compile header
-        for row in request.headers().clone().into_iter() {
+        for row in req.headers().clone().into_iter() {
             let key: String = row.name().to_string();
             let value: String = row.value().to_string();
 
@@ -87,14 +87,13 @@ impl<'a, 'r> FromRequest<'a, 'r> for RequestInfo {
         }
 
         // Compile query
-        let request_query = request.raw_query_items();
-        if request_query.is_some() {
-            for row in request_query.unwrap() {
-                let (key, value) = row.key_value_decoded();
+        let request_query = req.query_fields();
+        for field in request_query {
+            
 
-                query.push(Pair{key:key, value:value});
-            }
+            query.push(Pair{key:field.name.to_string(), value:field.value.to_string()});
         }
+        
 
         // Send the Request Info as successful outcome
         Outcome::Success(RequestInfo {
@@ -105,19 +104,24 @@ impl<'a, 'r> FromRequest<'a, 'r> for RequestInfo {
     }
 }
 
-impl FromDataSimple for RequestBody {
-    type Error = String;
+#[rocket::async_trait]
+impl<'r> FromData<'r> for RequestBody {
+    type Error = Error;
 
     /// Used to extract the body of a request and make it available to request functions
-    fn from_data(_req: &Request, data: Data) -> data::Outcome<Self, String> {
+    async fn from_data(_req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
+
         // Read the data into a String.
-        let mut string = String::new();
-        if let Err(e) = data.open().take(LIMIT).read_to_string(&mut string) {
-            return Outcome::Failure((Status::InternalServerError, format!("{:?}", e)));
-        }
+        let string = match data.open(LIMIT.mebibytes()).into_string().await {
+            Ok(string) if string.is_complete() => string.into_inner(),
+            Ok(_) => return Outcome::Error((Status::PayloadTooLarge, crate::Error::TooLarge)),
+            Err(e) => return Outcome::Error((Status::InternalServerError, crate::Error::Io(e))),
+        };
 
         // Return successfully.
-        Outcome::Success(RequestBody(string))
+        Outcome::Success(
+            RequestBody(string)
+        )
     }
 }
 
@@ -135,7 +139,7 @@ fn index(_info: RequestInfo) -> Template {
 /// Processes /test get request and responds with some of the contents of the request
 /// This function also stores information from the request in the database
 #[get("/test")]
-fn test_get(request: RequestInfo, cookies: Cookies) -> Template {
+fn test_get(request: RequestInfo, cookies: &CookieJar<'_>) -> Template {
 
     let client_id = cookies.get("mirror-id");
 
@@ -187,7 +191,7 @@ fn test_get(request: RequestInfo, cookies: Cookies) -> Template {
 /// Processes /test post request and responds with some of the contents of the request
 /// This function also stores information from the request in the database
 #[post("/test", data = "<body>")]
-fn test_post(body: RequestBody, request: RequestInfo, cookies: Cookies) -> Template {
+fn test_post(body: RequestBody, request: RequestInfo, cookies: &CookieJar<'_>) -> Template {
 
     let client_id = cookies.get("mirror-id");
     
@@ -245,7 +249,7 @@ fn test_post(body: RequestBody, request: RequestInfo, cookies: Cookies) -> Templ
 /// Request function that returns a history of requests that the current client has made
 /// The user can click a history_id and view the request itself
 #[get("/history")]
-fn history_req(cookies: Cookies) -> Template {
+fn history_req(cookies: &CookieJar<'_>) -> Template {
     
     // Get the client_id from the cookies
     let client_id = cookies.get("mirror-id").unwrap().value();
@@ -294,7 +298,7 @@ fn history_req(cookies: Cookies) -> Template {
 /// request that was recorded to the database.
 /// This includes the body of a post request, headers, cookies and query parameters.
 #[get("/history/<history_id>")]
-fn history_details(history_id: i64, cookies: Cookies) -> Template {
+fn history_details(history_id: i64, cookies: &CookieJar<'_>) -> Template {
     
     let client_id = cookies.get("mirror-id").unwrap().value();
 
@@ -388,9 +392,9 @@ fn not_found(req: &Request) -> Template {
     )
 }
 
-fn main() {
-    rocket::ignite()
-    .register(catchers![not_found])
+#[launch]
+fn rocket() -> _ {
+    rocket::build()
     .mount(
         "/",
         routes![
@@ -401,6 +405,6 @@ fn main() {
             history_details
         ]
     )
+    .register("/", catchers![not_found])
     .attach(Template::fairing())
-    .launch();
 }

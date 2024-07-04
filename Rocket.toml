@@ -1,27 +1,21 @@
-[development]
+[default]
 address = "0.0.0.0"
 port = 8000
 keep_alive = 5
-read_timeout = 5
-write_timeout = 5
-log = "normal"
+log_level = "normal"
 limits = { forms = 32768 }
 
-[staging]
-address = "0.0.0.0"
-port = 8000
-keep_alive = 5
-read_timeout = 5
-write_timeout = 5
-log = "normal"
-limits = { forms = 32768 }
-
-[production]
+[release]
 address = "0.0.0.0"
 port = 80
 keep_alive = 5
-read_timeout = 5
-write_timeout = 5
-log = "critical"
+log_level = "critical"
+limits = { forms = 32768 }
+
+[docker]
+address = "0.0.0.0"
+port = 80
+keep_alive = 5
+log_level = "critical"
 limits = { forms = 32768 }
 template_dir = "/templates/"
