@@ -18,5 +18,6 @@ jobs:
       uses: manusa/actions-publish-docker@v1.1.2
       with:
         name: raspberrypi99/request-mirror
+        tag: latest
         username: ${{ secrets.docker_hub_username }}
         password: ${{ secrets.docker_hub_password }}
