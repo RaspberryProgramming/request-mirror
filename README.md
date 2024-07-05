@@ -4,7 +4,7 @@ This application provides a web ui for sending get/post requests and provides a 
 ## TODO:
  - Update Readme
  - Document
-
+ - Develop Pipelines
 ## Docker
 
 Please read through the documentation on setting up and installing docker on your machine.
