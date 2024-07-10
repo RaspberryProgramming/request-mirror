@@ -4,6 +4,7 @@ use serde::Serialize;
 use crate::schema::{
     clients,
     history,
+    ownership,
     pair_records
 };
 use diesel::pg::Pg;
@@ -58,6 +59,16 @@ pub struct NewHistoryRecord<'a> {
     pub timestamp: NaiveDateTime
 }
 
+/// Used to store ownership relationship between two clients
+/// This structure is used for allowing separate clients to view history records of other clients
+#[derive(Queryable, Selectable, Insertable, Debug, Serialize)]
+#[diesel(table_name = ownership)]
+#[diesel(check_for_backend(Pg))]
+pub struct Ownership {
+    pub owner_id: String,
+    pub client_id: String
+}
+
 /// Pair Records are used to store attributes of a request. This includes a body record, header, query and cookie record.
 /// Each has a key and value.
 #[derive(Queryable, Selectable, Debug, Serialize)]
@@ -104,4 +115,11 @@ pub struct Pair {
 #[derive(Serialize)]
 pub struct ErrorContext {
     pub error_msg: String
+}
+
+/// Provides error context for 
+#[derive(Debug)]
+pub enum Error {
+    TooLarge,
+    Io(std::io::Error),
 }
