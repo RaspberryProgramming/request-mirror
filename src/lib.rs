@@ -6,10 +6,18 @@ use diesel::prelude::*;
 use std::env;
 use dotenvy::dotenv;
 use models::{
-    Client, NewClient, NewHistoryRecord, NewPairRecord, PairType
+    Client,
+    NewClient,
+    NewHistoryRecord,
+    NewPairRecord,
+    PairType,
+    Ownership
 };
 use schema::{
-    clients, history, pair_records
+    clients,
+    history,
+    pair_records,
+    ownership
 };
 
 /// Establishes diesel Postgres connection that can be used to iteract with the database
@@ -87,4 +95,37 @@ pub fn create_pair_record(conn: &mut PgConnection, history_id: i64, pair_type: P
     diesel::insert_into(pair_records::table)
         .values(&new_pair_record)
         .execute(conn).unwrap()
+}
+
+/// Creates a new ownership record in the database
+/// Pass the owner_id and client_id
+pub fn create_owner_record(conn: &mut PgConnection, owner_id: String, client_id: String) -> usize {
+    let new_ownership_record = Ownership {
+        owner_id,
+        client_id
+    };
+
+    diesel::insert_into(ownership::table)
+        .values(&new_ownership_record)
+        .execute(conn).unwrap()
+}
+
+/// retrieve a Vec of ownership relationships which client_id owns
+pub fn get_ownerships(client_id: &str, connection: &mut PgConnection) -> Vec<Ownership> {
+    ownership::dsl::ownership
+        .filter(ownership::owner_id.eq(client_id))
+        .select(Ownership::as_select())
+        .load(connection)
+        .expect("Error loading history records")
+}
+
+/// Returns boolean for whether the given ownership exists between client_id and owner_id
+pub fn ownership_exists(client_id: &str, owner_id: &str, connection: &mut PgConnection) -> bool {
+    let ownerships = ownership::dsl::ownership
+        .filter(ownership::client_id.eq(client_id).and(ownership::owner_id.eq(owner_id)))
+        .select(Ownership::as_select())
+        .load(connection)
+        .expect("Error loading history records");
+
+    ownerships.len() > 0
 }

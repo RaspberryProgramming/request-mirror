@@ -13,22 +13,33 @@ use uuid::Uuid;
 use request_mirror::models::*;
 use diesel::prelude::*;
 use request_mirror::*;
+use regex::Regex;
 
+/// Contains information about a request
 #[derive(Serialize, Debug, Clone)]
-struct RequestInfo {
+pub struct RequestInfo {
     header: Vec<Pair>,
     cookies: Vec<Pair>,
     query: Vec<Pair>
 }
 
-#[derive(Debug)]
-enum Error {
-    TooLarge,
-    Io(std::io::Error),
+impl RequestInfo {
+    /// Find query pair with given key
+    pub fn find_query_key(&self, key: &str) -> Option<&Pair> {
+
+        for pair in self.query.iter() {
+            if pair.key == key {
+                return Some(pair);
+            }
+        }
+
+        None
+    }
 }
 
+/// Contains string representation of body of a request
 #[derive(Serialize, Debug, Clone)]
-struct RequestBody(String);
+pub struct RequestBody(String);
 
 // Always use a limit to prevent DoS attacks.
 const LIMIT: u64 = 256;
@@ -257,11 +268,27 @@ fn history_req(cookies: &CookieJar<'_>) -> Template {
     let connection = &mut establish_connection();
 
     // Query the database for history records
-    let results = history::dsl::history
+    let mut results = history::dsl::history
         .filter(history::client_id.eq(client_id.to_string()))
         .select(HistoryRecord::as_select())
         .load(connection)
         .expect("Error loading clients");
+
+    // Get ownership relationships
+    let ownerships: Vec<Ownership> = get_ownerships(client_id, connection);
+
+    // Add any records that owned clients have
+    for ownership in ownerships {
+        let mut owned_records: Vec<HistoryRecord> = history::dsl::history
+            .filter(history::client_id.eq(ownership.client_id.to_string()))
+            .select(HistoryRecord::as_select())
+            .load(connection)
+            .expect("Error loading history records");
+
+        results.append(&mut owned_records);
+    }
+
+    results.sort_unstable_by_key(|item| item.id);
 
     /// Template Context
     #[derive(Serialize)]
@@ -302,13 +329,19 @@ fn history_details(history_id: i64, cookies: &CookieJar<'_>) -> Template {
     
     let client_id = cookies.get("mirror-id").unwrap().value();
 
-    let connection = &mut establish_connection();
+    let connection: &mut PgConnection = &mut establish_connection();
+
+    // Get owned client ids
+    let owned_clients: Vec<String> = get_ownerships(client_id, connection)
+        .iter()
+        .map(|x|x.client_id.to_string())
+        .collect::<Vec<String>>();
 
     // Query history table where the history id is what was in the route. Also filter client_ids.
     // If this record has a different client_id nothing will be returned
     let results: Vec<HistoryRecord> = history::dsl::history
         .filter(history::id.eq(&history_id))
-        .filter(history::client_id.eq(client_id.to_string()))
+        .filter(history::client_id.eq(client_id.to_string()).or(history::client_id.eq_any(owned_clients)))
         .select(HistoryRecord::as_select())
         .load(connection)
         .expect("Error loading history records");
@@ -321,8 +354,6 @@ fn history_details(history_id: i64, cookies: &CookieJar<'_>) -> Template {
             ErrorContext{ error_msg: "No Results Found. You may be not be authorized to view this record...".to_string() }
         );
     }
-
-    let connection = &mut establish_connection();
 
     // Query all Pair Records for this history_id
     let pairs: Vec<PairRecord> = pair_records::dsl::pair_records
@@ -381,6 +412,48 @@ fn history_details(history_id: i64, cookies: &CookieJar<'_>) -> Template {
 
 }
 
+#[get("/ownership_registration")]
+fn ownership_registration(info: RequestInfo, cookies: &CookieJar<'_>) -> Template {
+    
+    let client_id = cookies.get("mirror-id").unwrap().value().to_string();
+    let owner_id_pair = info.find_query_key("owner_id");
+    let mut disp_owner_reg = false;
+    let re = Regex::new(r"^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$").unwrap();
+    let connection: &mut PgConnection = &mut establish_connection();
+    let ownerships: Vec<Ownership> = get_ownerships(&client_id, connection);
+
+    let owner_id = match owner_id_pair {
+        Some(v) => v.value.to_string(),
+        None => "".to_string()
+    };
+
+    if
+        owner_id_pair.is_some() &&
+        re.is_match(&owner_id) &&
+        owner_id != client_id &&
+        !ownership_exists(&client_id, &owner_id, connection)
+    {
+        create_owner_record(connection, owner_id.clone(), client_id.clone());
+        disp_owner_reg = true;
+    }
+
+    #[derive(Serialize)]
+    struct Context{
+        client_id: String,
+        owner_id: String,
+        disp_owner_reg: bool,
+        ownerships: Vec<Ownership>
+    }
+    
+    Template::render("ownership_registration", Context {
+        client_id,
+        owner_id,
+        disp_owner_reg,
+        ownerships
+    })
+}
+
+
 /// 404 Response
 #[catch(404)]
 fn not_found(req: &Request) -> Template {
@@ -402,7 +475,8 @@ fn rocket() -> _ {
             test_get,
             test_post,
             history_req,
-            history_details
+            history_details,
+            ownership_registration
         ]
     )
     .register("/", catchers![not_found])
