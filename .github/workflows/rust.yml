@@ -1,4 +1,4 @@
-name: Rust
+name: Build and Test Rust
 
 on:
   push:
@@ -24,6 +24,12 @@ jobs:
         toolchain: nightly
         override: true
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --release --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --release --verbose
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.3.4
+      with:
+        name: linux-build
+        path: target/release/request-mirror
+              
