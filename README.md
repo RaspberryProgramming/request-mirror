@@ -1,10 +1,15 @@
 # Request Mirror
 This application provides a web ui for sending get/post requests and provides a visual ui for looking at what the application received. This is written in rust.
 
+![Docker Image CI](https://github.com/RaspberryProgramming/request-mirror/actions/workflows/docker-image.yml/badge.svg
+)
+![Build and Test](https://github.com/RaspberryProgramming/request-mirror/actions/workflows/rust.yml/badge.svg)
+
 ## TODO:
  - Update Readme
  - Document
  - Develop Pipelines
+
 ## Docker
 
 Please read through the documentation on setting up and installing docker on your machine.
