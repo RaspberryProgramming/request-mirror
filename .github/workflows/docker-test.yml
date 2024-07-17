@@ -1,0 +1,23 @@
+name: Build and Publish Test Docker Image
+
+on:
+  push:
+    branches: [ "test"]
+  pull_request:
+    branches: [ "test" ]
+
+jobs:
+
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v4
+    - run: docker build . -t raspberrypi99/request-mirror
+    - name: Dockerize
+      if: success()
+      uses: manusa/actions-publish-docker@v1.1.2
+      with:
+        name: raspberrypi99/request-mirror
+        tag: test
+        username: ${{ secrets.docker_hub_username }}
+        password: ${{ secrets.docker_hub_password }}
