@@ -3,6 +3,7 @@ pub mod schema;
 
 use chrono::offset::Utc;
 use diesel::prelude::*;
+use rocket::http::CookieJar;
 use std::env;
 use dotenvy::dotenv;
 use models::{
@@ -128,4 +129,13 @@ pub fn ownership_exists(client_id: &str, owner_id: &str, connection: &mut PgConn
         .expect("Error loading history records");
 
     ownerships.len() > 0
+}
+
+/// Looks for a cookie in the cookiejar. If it is a pending cookie, the pending will be returned as a String.
+/// This accounts for if this client hasn't connected before and is making its first request
+pub fn get_cookie(key: &str, cookies: &CookieJar<'_>) -> String {
+    match cookies.get_pending(key) {
+        Some(v) => v.value().to_string(),
+        None => cookies.get(key).unwrap().value().to_string()
+    }
 }
