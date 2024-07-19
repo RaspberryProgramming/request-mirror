@@ -409,26 +409,33 @@ fn history_details(history_id: i64, _info: RequestInfo, cookies: &CookieJar<'_>)
 #[get("/ownership_registration")]
 fn ownership_registration(info: RequestInfo, cookies: &CookieJar<'_>) -> Template {
     
+    let host_pair = info.header.iter().find(|&h| h.key == "host").unwrap();
     let client_id = get_cookie("mirror-id", cookies);
     let owner_id_pair = info.find_query_key("owner_id");
     let mut disp_owner_reg = false;
+    let mut failed_owner_reg = false;
     let re = Regex::new(r"^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$").unwrap();
     let connection: &mut PgConnection = &mut establish_connection();
     let ownerships: Vec<Ownership> = get_ownerships(&client_id, connection);
 
     let owner_id = match owner_id_pair {
-        Some(v) => v.value.to_string(),
+        Some(v) => v.value.trim().to_string(),
         None => "".to_string()
     };
 
     if
-        owner_id_pair.is_some() &&
+        owner_id_pair.is_some()
+    {
+        if
         re.is_match(&owner_id) &&
         owner_id != client_id &&
         !ownership_exists(&client_id, &owner_id, connection)
-    {
-        create_owner_record(connection, owner_id.clone(), client_id.clone());
-        disp_owner_reg = true;
+        {
+            create_owner_record(connection, owner_id.clone(), client_id.clone());
+            disp_owner_reg = true;
+        } else {
+            failed_owner_reg = true;
+        }
     }
 
     #[derive(Serialize)]
@@ -436,14 +443,18 @@ fn ownership_registration(info: RequestInfo, cookies: &CookieJar<'_>) -> Templat
         client_id: String,
         owner_id: String,
         disp_owner_reg: bool,
-        ownerships: Vec<Ownership>
+        failed_owner_reg: bool,
+        ownerships: Vec<Ownership>,
+        host: String
     }
     
     Template::render("ownership_registration", Context {
         client_id,
         owner_id,
         disp_owner_reg,
-        ownerships
+        failed_owner_reg,
+        ownerships,
+        host: host_pair.value.to_string()
     })
 }
 

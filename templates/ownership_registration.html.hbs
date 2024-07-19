@@ -36,19 +36,27 @@
   </nav>
 
   <div id="body" class="p-5">
-    <h3>Your Client ID: {{client_id}}</h3>
+    <p>
+    <h5>
+      Your Client ID:
+    </h5>
+    <button id="client_id" class="border-0 bg-transparent" onclick="copy_content(event)" data-bs-toggle="tooltip"
+      data-bs-title="Click To Copy">
+      {{client_id}}
+    </button>
+    </p>
+    <p>
+    <h5>
+      Registration Link:
+    </h5>
+    <button id="reg_link" class="border-0 bg-transparent" onclick="copy_content(event)" data-bs-toggle="tooltip"
+      data-bs-title="Click To Copy">
+      {{host}}/ownership_registration?owner_id=937b0f08-a3af-457b-b65e-4ed858517588
+    </button>
+    </p>
 
-    <form target="/owner_registration">
-      <h5>Ownership Registration</h5>
-      <input type="text" name="owner_id">
-    </form>
-
-    {{#if disp_owner_reg}}
-    <p>Registered new owner {{owner_id}} for {{client_id}}</p>
-    {{/if}}
-
-    <h3>Owned Clients</h3>
-    <table>
+    <h5>Owned Clients</h5>
+    <table class="table table-striped m-1">
       <tr>
         <th>Client ID</th>
       </tr>
@@ -60,10 +68,82 @@
       </tr>
       {{/each}}
     </table>
+
+    <form action="/ownership_registration" method="get">
+      <h5>Ownership Registration</h5>
+      <div class="p-1">
+        <h6>Instructions:</h6>
+        <p>
+          Copy the Client ID from the browser you'd like to see your requests. Paste it into the Owner ID Form and
+          submit.
+        </p>
+        <p>
+          This will allow the other client to access any requests you've made in the history page.
+        </p>
+        <p>
+          If you'd like to register a new owner on a client that doesn't have access to this html form, you can make the
+          request directly
+          by making an http/https request to the registration link above. Click it to copy to your clipboard.
+        </p>
+      </div>
+      <div class="mb-3 ms-1 me-1">
+        <label for="owner_id" class="form-label">Owner ID</label>
+        <input class="form-control" type="text" name="owner_id">
+      </div>
+      <div class="">
+        <button type="submit" class="btn btn-primary mb-3">Submit</button>
+      </div>
+
+    </form>
+
+    {{#if disp_owner_reg}}
+    <p>Registered new owner {{owner_id}} for {{client_id}}</p>
+    {{/if}}
+
+    {{#if failed_owner_reg}}
+    <p>Failed to register {{owner_id}} for {{client_id}}.</p>
+    <p>This may have ocurred because the owner_id does not exist, is already registered as an owner, or that it is the same as the client_id.</p>
+    {{/if}}
   </div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="clipboard_toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <svg class="bd-placeholder-img rounded me-2" width="20" height="20" xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false">
+          <rect width="100%" height="100%" fill="#007aff"></rect>
+        </svg>
+        <strong class="me-auto">Clipboard</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        Copied to Clipboard.
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
+
+  <script>
+    function copy_content(event) {
+      // Get the text field
+      var copyText = document.getElementById(event.target.id);
+
+      // Copy the text inside the text field
+      navigator.clipboard.writeText(copyText.innerText);
+
+      const toastLiveExample = document.getElementById('clipboard_toast')
+
+      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+      toastBootstrap.show()
+    }
+
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+  </script>
 </body>
 
 </html>
