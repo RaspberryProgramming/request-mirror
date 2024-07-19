@@ -152,30 +152,27 @@ fn index(_info: RequestInfo) -> Template {
 #[get("/test")]
 fn test_get(request: RequestInfo, cookies: &CookieJar<'_>) -> Template {
 
-    let client_id = cookies.get("mirror-id");
+    let client_id = get_cookie("mirror-id", cookies);
 
-    // If the cookie exists, create new database records for this request
-    if client_id.is_some() {
-        let connection = &mut establish_connection();
+    // create new database records for this request
+    let connection = &mut establish_connection();
 
-        // Create new history record and retrieve new history_id
-        let history_id = create_history_record(connection, client_id.unwrap().value(), "Get");
+    // Create new history record and retrieve new history_id
+    let history_id = create_history_record(connection, &client_id, "Get");
 
-        // Create header pair records
-        for row in &request.header {
-            create_pair_record(connection, history_id, PairType::Header, &row.key, &row.value);
-        }
+    // Create header pair records
+    for row in &request.header {
+        create_pair_record(connection, history_id, PairType::Header, &row.key, &row.value);
+    }
 
-        // Create cookie pair records
-        for row in &request.cookies {
-            create_pair_record(connection, history_id, PairType::Cookie, &row.key, &row.value);
-        }
-        
-        // Create query pair records
-        for row in &request.query {
-            create_pair_record(connection, history_id, PairType::Query, &row.key, &row.value);
-        }
-
+    // Create cookie pair records
+    for row in &request.cookies {
+        create_pair_record(connection, history_id, PairType::Cookie, &row.key, &row.value);
+    }
+    
+    // Create query pair records
+    for row in &request.query {
+        create_pair_record(connection, history_id, PairType::Query, &row.key, &row.value);
     }
 
     // Define context for the template
@@ -204,35 +201,32 @@ fn test_get(request: RequestInfo, cookies: &CookieJar<'_>) -> Template {
 #[post("/test", data = "<body>")]
 fn test_post(body: RequestBody, request: RequestInfo, cookies: &CookieJar<'_>) -> Template {
 
-    let client_id = cookies.get("mirror-id");
+    let client_id = get_cookie("mirror-id", cookies);
     
-    // If the cookie exists, create new database records for this request
-    if client_id.is_some() {
-        let connection = &mut establish_connection();
-        
-        // Create new history record and retrieve new history_id
-        let history_id = create_history_record(connection, client_id.unwrap().value(), "Post");
-        
-        // Create header pair records
-        for row in &request.header {
-            create_pair_record(connection, history_id, PairType::Header, &row.key, &row.value);
-        }
-
-        // Create cookie pair records
-        for row in &request.cookies {
-            create_pair_record(connection, history_id, PairType::Cookie, &row.key, &row.value);
-        }
-        
-         // Create query pair records
-        for row in &request.query {
-            create_pair_record(connection, history_id, PairType::Query, &row.key, &row.value);
-        }
-
-        // Create a pair record for body of the request
-        println!("Creating body Records for {history_id}");
-        create_pair_record(connection, history_id, PairType::Body, "body", &body.0.clone());
-
+    // Create new database records for this request
+    let connection = &mut establish_connection();
+    
+    // Create new history record and retrieve new history_id
+    let history_id = create_history_record(connection, &client_id, "Post");
+    
+    // Create header pair records
+    for row in &request.header {
+        create_pair_record(connection, history_id, PairType::Header, &row.key, &row.value);
     }
+
+    // Create cookie pair records
+    for row in &request.cookies {
+        create_pair_record(connection, history_id, PairType::Cookie, &row.key, &row.value);
+    }
+    
+        // Create query pair records
+    for row in &request.query {
+        create_pair_record(connection, history_id, PairType::Query, &row.key, &row.value);
+    }
+
+    // Create a pair record for body of the request
+    println!("Creating body Records for {history_id}");
+    create_pair_record(connection, history_id, PairType::Body, "body", &body.0.clone());
 
     // Define context for the template
     #[derive(Serialize)]
@@ -260,10 +254,10 @@ fn test_post(body: RequestBody, request: RequestInfo, cookies: &CookieJar<'_>) -
 /// Request function that returns a history of requests that the current client has made
 /// The user can click a history_id and view the request itself
 #[get("/history")]
-fn history_req(cookies: &CookieJar<'_>) -> Template {
+fn history_req(_info: RequestInfo, cookies: &CookieJar<'_>) -> Template {
     
     // Get the client_id from the cookies
-    let client_id = cookies.get("mirror-id").unwrap().value();
+    let client_id = get_cookie("mirror-id", cookies);
 
     let connection = &mut establish_connection();
 
@@ -275,7 +269,7 @@ fn history_req(cookies: &CookieJar<'_>) -> Template {
         .expect("Error loading clients");
 
     // Get ownership relationships
-    let ownerships: Vec<Ownership> = get_ownerships(client_id, connection);
+    let ownerships: Vec<Ownership> = get_ownerships(&client_id, connection);
 
     // Add any records that owned clients have
     for ownership in ownerships {
@@ -325,14 +319,14 @@ fn history_req(cookies: &CookieJar<'_>) -> Template {
 /// request that was recorded to the database.
 /// This includes the body of a post request, headers, cookies and query parameters.
 #[get("/history/<history_id>")]
-fn history_details(history_id: i64, cookies: &CookieJar<'_>) -> Template {
+fn history_details(history_id: i64, _info: RequestInfo, cookies: &CookieJar<'_>) -> Template {
     
-    let client_id = cookies.get("mirror-id").unwrap().value();
+    let client_id = get_cookie("mirror-id", cookies);
 
     let connection: &mut PgConnection = &mut establish_connection();
 
     // Get owned client ids
-    let owned_clients: Vec<String> = get_ownerships(client_id, connection)
+    let owned_clients: Vec<String> = get_ownerships(&client_id, connection)
         .iter()
         .map(|x|x.client_id.to_string())
         .collect::<Vec<String>>();
@@ -415,7 +409,7 @@ fn history_details(history_id: i64, cookies: &CookieJar<'_>) -> Template {
 #[get("/ownership_registration")]
 fn ownership_registration(info: RequestInfo, cookies: &CookieJar<'_>) -> Template {
     
-    let client_id = cookies.get("mirror-id").unwrap().value().to_string();
+    let client_id = get_cookie("mirror-id", cookies);
     let owner_id_pair = info.find_query_key("owner_id");
     let mut disp_owner_reg = false;
     let re = Regex::new(r"^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$").unwrap();
