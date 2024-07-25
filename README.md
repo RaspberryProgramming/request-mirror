@@ -118,3 +118,36 @@ Next, you can run the project using the following command. This can be run even 
 ```bash
 docker compose up -d
 ```
+
+## Ansible Playbook
+
+You can get access to an ansible playbook and associated files by checking out the following repository
+
+[https://github.com/RaspberryProgramming/CamsAnsibleLibrary/](https://github.com/RaspberryProgramming/CamsAnsibleLibrary)
+
+You can clone the repository
+
+```bash
+git clone https://github.com/RaspberryProgramming/CamsAnsibleLibrary
+
+cd CamsAnsibleLibrary/Request\ Mirror/
+```
+
+Next, you can create your "inventory" file
+
+```
+[request-mirror-host]
+10.1.2.3
+```
+
+If you haven't already, setup an ssh key so you can automatically log into your remote host as root. If you decide to use a user with sudo privileges you may need to modify the playbook on your own.
+
+```bash
+ansible-playbook request_mirror_deployment.yml -i inventory
+```
+
+If you need to enter a root password, you can add the -K argument
+
+```bash
+ansible-playbook request_mirror_deployment.yml -i inventory -K
+```
