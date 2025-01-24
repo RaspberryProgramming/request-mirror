@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.34"
-diesel = { version = "2.1.4", features = ["postgres", "chrono"] }
+chrono = "0.4.39"
+diesel = { version = "2.2.6", features = ["postgres", "chrono"] }
 dotenvy = "0.15.7"
-regex = "1.10.5"
+regex = "1.11.1"
 rocket = { version = "0.5.1", features = ["tls"] }
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
-tokio = { version = "1.36.0", features = ["full"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.137"
+tokio = { version = "1.43.0", features = ["full"] }
 time = "0.3.37"
 
 [dependencies.rocket_dyn_templates]
@@ -21,7 +21,7 @@ version = "0.2.0"
 features = ["handlebars"]
 
 [dependencies.uuid]
-version = "1.7.0"
+version = "1.12.1"
 features = [
     "v4",                # Lets you generate random UUIDs
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
