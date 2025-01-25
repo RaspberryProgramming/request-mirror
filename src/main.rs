@@ -9,6 +9,7 @@ use rocket::outcome::Outcome;
 use rocket_dyn_templates::Template;
 use serde::Serialize;
 use rocket::http::{Cookie, CookieJar, Status};
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 use request_mirror::models::*;
 use diesel::prelude::*;
@@ -61,7 +62,14 @@ impl<'r> FromRequest<'r> for RequestInfo {
             let new_uuid = Uuid::new_v4().to_string();
             println!("Creating new cookie");
             
-            req_cookies.add(Cookie::new("mirror-id", new_uuid.clone()));
+            let mut cookie = Cookie::new("mirror-id", new_uuid.clone());
+            let mut now = OffsetDateTime::now_utc();
+            
+            now += Duration::weeks(cookie_expiration()); // Default expiration is 52 weeks
+
+            cookie.set_expires(now);
+            
+            req_cookies.add(cookie);
             
             let address = if req.client_ip().is_some() {
                 req.client_ip().unwrap().to_string()

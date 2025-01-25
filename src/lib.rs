@@ -47,6 +47,38 @@ pub fn establish_connection() -> PgConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
+/// returns default cookie expiration in weeks
+/// 
+/// This value can be set by modifying an environment variable or setting in the .env file.
+/// 
+/// Example:
+/// 
+/// ```rust,ignore
+/// use request_mirror::establish_connection;
+/// 
+/// let connection = establish_connection();
+/// ```
+pub fn cookie_expiration() -> i64 {
+    
+    let key: &str = "COOKIE_EXPIRATION";
+    let expiration: i64;
+    match env::var(key) {
+        Ok(val) => {
+            match val.parse::<i64>() {
+                Ok(v) => expiration = v,
+                Err(e) => expiration = 52
+            }
+        },
+        Err(_e) => {
+            dotenv().ok();
+
+            expiration = 52;
+        }
+    }
+        
+    expiration
+}
+
 /// Used to create a new client in the database. You need to pass a connection, the ip and client_id
 /// 
 /// Example:

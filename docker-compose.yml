@@ -17,6 +17,8 @@ services:
       - 80:80
     environment:
       - DATABASE_URL=postgres://postgres:Password123@postgres/request_mirror_db
+      # Set COOKIE_EXPIRATION in weeks
+      # - COOKIE_EXPIRATION=52
     depends_on:
       postgres:
         condition: service_healthy
